@@ -9,7 +9,7 @@ class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    List<Pet> pets = Provider.of<PetsProvider>(context).pets;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text("Pet Adopt"),
@@ -28,22 +28,34 @@ class HomePage extends StatelessWidget {
                 ),
               ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Provider.of<PetsProvider>(context, listen: false).getPets();
+            FutureBuilder(
+              future: context.read<PetsProvider>().getPets(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.error != null) {
+                  return Center(child: Text("Network Error"));
+                } 
+                
+                else {
+                  // list of pets has to be inside the builder so it doesn't load forever
+                  List<Pet> pets = Provider.of<PetsProvider>(context).pets;
+                  return GridView.builder(
+                      shrinkWrap: true,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: MediaQuery.of(context).size.width /
+                            (MediaQuery.of(context).size.height),
+                      ),
+                      physics: const NeverScrollableScrollPhysics(), // <- Here
+                      itemCount: pets.length,
+                      itemBuilder: (context, index) =>
+                          PetCard(pet: pets[index]));
+                }
               },
-              child: const Text("GET"),
             ),
-            GridView.builder(
-                shrinkWrap: true,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: MediaQuery.of(context).size.width /
-                      (MediaQuery.of(context).size.height),
-                ),
-                physics: const NeverScrollableScrollPhysics(), // <- Here
-                itemCount: pets.length,
-                itemBuilder: (context, index) => PetCard(pet: pets[index])),
           ],
         ),
       ),
